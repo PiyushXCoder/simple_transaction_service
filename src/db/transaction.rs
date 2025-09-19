@@ -16,7 +16,7 @@ pub trait Transaction {
 
 pub struct TransactionInfo {
     pub id: i32,
-    pub sender: Username,
+    pub sender: Option<Username>,
     pub receiver: Username,
     pub amount: i64,
     pub timestamp: PrimitiveDateTime,
