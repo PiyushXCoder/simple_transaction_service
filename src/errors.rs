@@ -1,3 +1,5 @@
+use actix_web::ResponseError;
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("IO error: {0}")]
@@ -9,4 +11,7 @@ pub enum Error {
     #[error("Not found")]
     InsufficientFunds,
 }
+
 pub type Result<T> = std::result::Result<T, Error>;
+
+impl ResponseError for Error {}

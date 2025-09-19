@@ -1,0 +1,26 @@
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct CreateAccountRequest {
+    pub username: String,
+    pub name: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct TransferFundsRequest {
+    pub sender: String,
+    pub receiver: String,
+    pub amount: f64,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct CreditAccountRequest {
+    pub account: String,
+    pub amount: f64,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DebitAccountRequest {
+    pub account: String,
+    pub amount: f64,
+}

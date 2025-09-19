@@ -23,4 +23,11 @@ pub async fn start_server(address: &str, database_url: &str) -> crate::errors::R
     Ok(())
 }
 
-pub(crate) fn config(cfg: &mut web::ServiceConfig) {}
+pub(crate) fn config(cfg: &mut web::ServiceConfig) {
+    cfg.service(index);
+}
+
+#[actix_web::get("/")]
+async fn index() -> &'static str {
+    "Hello, world!"
+}
