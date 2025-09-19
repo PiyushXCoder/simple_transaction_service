@@ -6,6 +6,6 @@ async fn create_account(
     eq_body: web::Json<CreateAccountRequest>,
     db_store: web::Data<dyn DbStore>,
 ) -> ActixResult<impl Responder> {
-    account::create_account(eq_body.into_inner(), db_store.into_inner()).await?;
-    Ok(HttpResponse::Ok())
+    let resp = account::create_account(eq_body.into_inner(), db_store.into_inner()).await?;
+    Ok(HttpResponse::Ok().json(resp))
 }
