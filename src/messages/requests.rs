@@ -15,12 +15,12 @@ pub struct TransferFundsRequest {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CreditAccountRequest {
-    pub account: String,
+    pub receiver: String,
     pub amount: i64,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DebitAccountRequest {
-    pub account: String,
+    pub receiver: String,
     pub amount: i64,
 }

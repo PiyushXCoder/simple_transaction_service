@@ -78,4 +78,68 @@ impl Transaction for SqlxDbStore {
         let results = query.fetch_all(&self.pg_pool).await?;
         Ok(results)
     }
+
+    async fn credit_account(
+        &self,
+        account: &Username,
+        amount: i64,
+    ) -> Result<i32, crate::errors::Error> {
+        let mut tx = self.pg_pool.begin().await?;
+
+        sqlx::query!(
+            "UPDATE account SET balance = balance + $1 WHERE username = $2",
+            amount,
+            account
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        let transaction_id = sqlx::query_scalar!(
+            "INSERT INTO transaction (receiver, amount) VALUES ($1, $2) RETURNING id",
+            account,
+            amount
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+        Ok(transaction_id)
+    }
+
+    async fn debit_account(
+        &self,
+        account: &Username,
+        amount: i64,
+    ) -> Result<i32, crate::errors::Error> {
+        let mut tx = self.pg_pool.begin().await?;
+
+        let lock_account = sqlx::query!(
+            "SELECT balance FROM account WHERE username = $1 FOR UPDATE",
+            account
+        );
+
+        let balance = lock_account.fetch_one(&mut *tx).await?.balance;
+        if balance < amount {
+            return Err(crate::errors::Error::InsufficientFunds);
+        }
+
+        sqlx::query!(
+            "UPDATE account SET balance = balance - $1 WHERE username = $2",
+            amount,
+            account
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        let transaction_id = sqlx::query_scalar!(
+            "INSERT INTO transaction (receiver, amount) VALUES ($1, $2) RETURNING id",
+            account,
+            -amount
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+        Ok(transaction_id)
+    }
 }

@@ -12,6 +12,8 @@ pub trait Transaction {
     ) -> Result<i32, Error>;
     async fn get_transaction(&self, id: i32) -> Result<Option<TransactionInfo>, Error>;
     async fn list_transactions(&self) -> Result<Vec<TransactionInfo>, Error>;
+    async fn credit_account(&self, receiver: &Username, amount: i64) -> Result<i32, Error>;
+    async fn debit_account(&self, sender: &Username, amount: i64) -> Result<i32, Error>;
 }
 
 pub struct TransactionInfo {
