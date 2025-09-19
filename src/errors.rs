@@ -4,6 +4,9 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error("Custom error: {0}")]
     Custom(String),
+    #[error("Database error: {0}")]
+    Db(#[from] sqlx::Error),
+    #[error("Not found")]
+    InsufficientFunds,
 }
-
 pub type Result<T> = std::result::Result<T, Error>;
