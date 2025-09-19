@@ -11,18 +11,19 @@ impl Transaction for SqlxDbStore {
     ) -> Result<i32, crate::errors::Error> {
         let mut tx = self.pg_pool.begin().await?;
 
-        let lock_from_account = sqlx::query!(
+        let lock_sender_account = sqlx::query!(
             "SELECT balance FROM account WHERE username = $1 FOR UPDATE",
             sender
         );
-        let lock_to_account = sqlx::query!(
+        let lock_receiver_account = sqlx::query!(
             "SELECT balance FROM account WHERE username = $1 FOR UPDATE",
             receiver
         );
 
-        let balance_from = lock_to_account.fetch_one(&mut *tx).await?.balance;
-        let _ = lock_from_account.fetch_one(&mut *tx).await?.balance;
-        if balance_from < amount {
+        let _ = lock_receiver_account.fetch_one(&mut *tx).await?.balance;
+        let balance_sender = lock_sender_account.fetch_one(&mut *tx).await?.balance;
+
+        if balance_sender < amount {
             return Err(crate::errors::Error::InsufficientFunds);
         }
 
