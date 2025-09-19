@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 actix-web = "4.11.0"
+actix-web-httpauth = "0.8.2"
 async-trait = "0.1.89"
 chrono = { version = "0.4.42", features = ["serde"] }
 clap = { version = "4.5.47", features = ["derive"] }

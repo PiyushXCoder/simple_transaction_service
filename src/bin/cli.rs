@@ -1,5 +1,5 @@
 use clap::Parser;
-use simple_transaction_service::{db::api_keys::ApiKeys, sqlx::SqlxDbStore};
+use simple_transaction_service::{db::api_keys::ApiKeys, sqlx_db_impl::SqlxDbStore};
 use sqlx::postgres::PgPoolOptions;
 use std::env;
 

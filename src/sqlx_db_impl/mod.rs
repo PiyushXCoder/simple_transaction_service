@@ -1,7 +1,10 @@
+use crate::db::DbStore;
+
 pub mod account;
 pub mod api_keys;
 pub mod transaction;
 
+#[derive(Clone)]
 pub struct SqlxDbStore {
     pg_pool: sqlx::PgPool,
 }
@@ -17,3 +20,5 @@ impl SqlxDbStore {
         Self { pg_pool }
     }
 }
+
+impl DbStore for SqlxDbStore {}
