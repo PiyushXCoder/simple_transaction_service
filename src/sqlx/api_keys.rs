@@ -26,4 +26,14 @@ impl ApiKeys for SqlxDbStore {
         let record = query.fetch_one(&self.pg_pool).await?;
         Ok(record.key)
     }
+
+    async fn list_api_keys(&self) -> Result<Vec<String>, crate::errors::Error> {
+        let query = sqlx::query!(
+            r#"
+            SELECT key FROM api_keys
+            "#
+        );
+        let records = query.fetch_all(&self.pg_pool).await?;
+        Ok(records.into_iter().map(|r| r.key).collect())
+    }
 }
