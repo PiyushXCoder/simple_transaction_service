@@ -9,7 +9,7 @@ pub trait Transaction {
         sender: &Username,
         receiver: &Username,
         amount: i64,
-    ) -> Result<(), Error>;
+    ) -> Result<i32, Error>;
     async fn get_transaction(&self, id: i32) -> Result<Option<TransactionInfo>, Error>;
     async fn list_transactions(&self) -> Result<Vec<TransactionInfo>, Error>;
 }

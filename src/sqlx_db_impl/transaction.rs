@@ -8,7 +8,7 @@ impl Transaction for SqlxDbStore {
         sender: &Username,
         receiver: &Username,
         amount: i64,
-    ) -> Result<(), crate::errors::Error> {
+    ) -> Result<i32, crate::errors::Error> {
         let mut tx = self.pg_pool.begin().await?;
 
         let lock_from_account = sqlx::query!(
@@ -42,17 +42,17 @@ impl Transaction for SqlxDbStore {
         .execute(&mut *tx)
         .await?;
 
-        sqlx::query!(
-            "INSERT INTO transaction (sender, receiver, amount) VALUES ($1, $2, $3)",
+        let transaction_id = sqlx::query_scalar!(
+            "INSERT INTO transaction (sender, receiver, amount) VALUES ($1, $2, $3) RETURNING id",
             sender,
             receiver,
             amount
         )
-        .execute(&mut *tx)
+        .fetch_one(&mut *tx)
         .await?;
 
         tx.commit().await?;
-        Ok(())
+        Ok(transaction_id)
     }
 
     async fn get_transaction(
