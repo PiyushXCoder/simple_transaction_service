@@ -33,10 +33,10 @@ pub async fn start_server(address: &str, database_url: &str) -> crate::errors::R
 }
 
 pub(crate) fn config(cfg: &mut web::ServiceConfig) {
-    cfg.service(index);
-}
-
-#[actix_web::get("/")]
-async fn index() -> &'static str {
-    "Check README.md for usage instructions."
+    cfg.service(crate::controller::index);
+    cfg.service(crate::controller::account::create_account);
+    cfg.service(crate::controller::transaction::transfer_funds);
+    cfg.service(crate::controller::transaction::credit_account);
+    cfg.service(crate::controller::transaction::debit_account);
+    cfg.service(crate::controller::webhook::add_webhook);
 }
