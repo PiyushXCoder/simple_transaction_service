@@ -3,7 +3,7 @@ use crate::db::{account::Username, webhook::Webhook};
 
 #[async_trait::async_trait]
 impl Webhook for SqlxDbStore {
-    async fn create_webhook(
+    async fn add_webhook(
         &self,
         username: &Username,
         url: &str,

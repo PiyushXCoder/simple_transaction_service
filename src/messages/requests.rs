@@ -24,3 +24,9 @@ pub struct DebitAccountRequest {
     pub receiver: String,
     pub amount: i64,
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct AddWebhookRequest {
+    pub listening_account: String,
+    pub url: String,
+}
