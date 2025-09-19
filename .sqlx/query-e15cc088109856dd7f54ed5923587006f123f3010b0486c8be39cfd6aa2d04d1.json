@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE webhookqueue\n            SET status = 'sent'\n            WHERE id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e15cc088109856dd7f54ed5923587006f123f3010b0486c8be39cfd6aa2d04d1"
+}

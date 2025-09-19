@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            DELETE FROM webhook\n            WHERE id = $1 \n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "330e122da8394fed20a709ae659218d0352d5c64f9abf1b4c115ee5dc0fb1cd9"
+}
