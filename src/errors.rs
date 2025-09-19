@@ -10,6 +10,8 @@ pub enum Error {
     Db(#[from] sqlx::Error),
     #[error("Not found")]
     InsufficientFunds,
+    #[error("Not found")]
+    NotFound,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

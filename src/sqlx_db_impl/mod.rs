@@ -3,6 +3,7 @@ use crate::db::DbStore;
 pub mod account;
 pub mod api_keys;
 pub mod transaction;
+pub mod webhook;
 
 #[derive(Clone)]
 pub struct SqlxDbStore {
