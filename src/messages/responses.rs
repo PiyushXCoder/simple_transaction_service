@@ -9,7 +9,7 @@ pub struct ResponseMessage {
 pub struct AccountResponse {
     pub username: String,
     pub name: String,
-    pub balance: f64,
+    pub balance: i64,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

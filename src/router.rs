@@ -35,6 +35,7 @@ pub async fn start_server(address: &str, database_url: &str) -> crate::errors::R
 pub(crate) fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(crate::controller::index);
     cfg.service(crate::controller::account::create_account);
+    cfg.service(crate::controller::account::get_account);
     cfg.service(crate::controller::transaction::transfer_funds);
     cfg.service(crate::controller::transaction::credit_account);
     cfg.service(crate::controller::transaction::debit_account);

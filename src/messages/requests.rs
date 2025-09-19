@@ -7,6 +7,11 @@ pub struct CreateAccountRequest {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+pub struct GetAccountRequest {
+    pub username: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct TransferFundsRequest {
     pub sender: String,
     pub receiver: String,
