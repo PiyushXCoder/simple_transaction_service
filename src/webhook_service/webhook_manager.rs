@@ -1,0 +1,15 @@
+use crate::errors::Result;
+
+#[allow(dead_code)]
+#[async_trait::async_trait]
+pub trait WebhookManager: Send + Sync + 'static {
+    async fn queue_webhook(
+        &self,
+        listening_account: &str,
+        transaction_id: i32,
+        event: &str,
+        message: &str,
+    ) -> Result<()>;
+
+    async fn poll(&self) -> Result<()>;
+}
