@@ -1,6 +1,6 @@
 # API Documentation
 
-## Create Account
+> You can also add `--header 'Idempotency-Key: <Your key>'` on every request. But it is optional. If not added Idempotency won't be provided! Also for key it is better to use UUID. 
 
 **Request**
 
@@ -10,8 +10,8 @@ curl --request POST \
   --header 'Authorization: Bearer <API KEY>' \
   --header 'Content-Type: application/json' \
   --data '{
-	"username": "<username>",
-	"name": "<full name>"
+    "username": "<username>",
+    "name": "<full name>"
 }'
 ```
 
@@ -22,8 +22,6 @@ curl --request POST \
  "message": "Account created successfully"
 }
 ```
-
-
 
 ## Get Account
 
@@ -39,9 +37,9 @@ curl --request GET \
 
 ```json
 {
-	"username": "<username>",
-	"name": "<Full Name>",
-	"balance": <balance>
+    "username": "<username>",
+    "name": "<Full Name>",
+    "balance": <balance>
 }
 ```
 
@@ -55,8 +53,8 @@ curl --request POST \
   --header 'Authorization: Bearer <API KEY>' \
   --header 'Content-Type: application/json' \
   --data '{
-	"listening_account": "<username>",
-	"url": "http://localhost:3000/"
+    "listening_account": "<username>",
+    "url": "http://localhost:3000/"
 }'
 ```
 
@@ -64,7 +62,7 @@ curl --request POST \
 
 ```json
 {
-	"message": "Added webhook"
+    "message": "Added webhook"
 }
 ```
 
@@ -78,8 +76,8 @@ curl --request POST \
   --header 'Authorization: Bearer <API KEY>' \
   --header 'Content-Type: application/json' \
   --data '{
-	"receiver": "<username>",
-	"amount": <balance>
+    "receiver": "<username>",
+    "amount": <balance>
 }'
 ```
 
@@ -87,7 +85,7 @@ curl --request POST \
 
 ```json
 {
-	"id": <transaction id>
+    "id": <transaction id>
 }
 ```
 
@@ -101,8 +99,8 @@ curl --request POST \
   --header 'Authorization: Bearer <API KEY>' \
   --header 'Content-Type: application/json' \
   --data '{
-	"receiver": "<username>",
-	"amount": <balance>
+    "receiver": "<username>",
+    "amount": <balance>
 }'
 ```
 
@@ -110,11 +108,9 @@ curl --request POST \
 
 ```json
 {
-	"id": <transaction id>
+    "id": <transaction id>
 }
 ```
-
-
 
 ## Transfer
 
@@ -126,9 +122,9 @@ curl --request POST \
   --header 'Authorization: Bearer 7f853b13-fc18-4cbb-a80e-3c6002ef7bb4' \
   --header 'Content-Type: application/json' \
   --data '{
-	"sender": "<username>", 
-	"receiver": "<username>",
-	"amount": <amount>
+    "sender": "<username>", 
+    "receiver": "<username>",
+    "amount": <amount>
 }'
 ```
 
@@ -136,6 +132,20 @@ curl --request POST \
 
 ```bash
 {
-	"id": <transaction id>
+    "id": <transaction id>
 }
 ```
+
+## Errors
+
+All Errors comes in following format
+
+```json
+{
+	"error": "<message>"
+}
+```
+
+I didn't do too much testing to add status code for all errors. I did have defined many in [src/errors.rs](src/errors.rs)
+
+> The software is not tested enough to be very reliable. Some of the errors might not be well verbose. 
