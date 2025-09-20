@@ -6,11 +6,15 @@ use crate::middleware;
 use crate::sqlx_db_impl::SqlxDbStore;
 use crate::{db::DbStore, validator};
 use actix::Actor;
+use actix_web::middleware::Logger;
 use actix_web::{App, HttpServer, web};
 use actix_web_httpauth::middleware::HttpAuthentication;
+use log::info;
 
 pub async fn start_server(address: &str, database_url: &str) -> crate::errors::Result<()> {
-    println!("Starting server at http://{}", address);
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+
+    info!("Starting server at http://{}", address);
     let db_store = web::Data::from(
         Arc::new(SqlxDbStore::new_from_database_url(database_url)) as Arc<dyn DbStore>
     );
@@ -27,6 +31,7 @@ pub async fn start_server(address: &str, database_url: &str) -> crate::errors::R
             .app_data(webhook_mgr.clone())
             .wrap(idempotency.clone())
             .wrap(auth.clone())
+            .wrap(Logger::default())
             .configure(config)
     })
     .bind(address)?

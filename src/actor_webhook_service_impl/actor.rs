@@ -1,6 +1,7 @@
 use crate::db::DbStore;
 use actix::prelude::*;
 use actix_broker::{BrokerSubscribe, SystemBroker};
+use log::error;
 use std::sync::Arc;
 
 pub struct WebhookActor {
@@ -48,13 +49,10 @@ impl Handler<WebhookActorMessage> for WebhookActor {
                                     if let Err(e) =
                                         db_store.mark_webhook_queue_item_as_sent(item.id).await
                                     {
-                                        println!(
-                                            "Failed to mark webhook queue item as sent: {}",
-                                            e
-                                        );
+                                        error!("Failed to mark webhook queue item as sent: {}", e);
                                     }
                                 } else {
-                                    println!(
+                                    error!(
                                         "Failed to send webhook to {}: HTTP {}",
                                         item.url,
                                         response.status()
@@ -62,13 +60,13 @@ impl Handler<WebhookActorMessage> for WebhookActor {
                                 }
                             }
                             Err(e) => {
-                                println!("Failed to send webhook to {}: {}", item.url, e);
+                                error!("Failed to send webhook to {}: {}", item.url, e);
                             }
                         }
                     }
                 }
                 Err(e) => {
-                    println!("Failed to poll webhook queue: {}", e);
+                    error!("Failed to poll webhook queue: {}", e);
                 }
             }
         });
