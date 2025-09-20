@@ -15,6 +15,8 @@ pub enum Error {
     InsufficientFunds,
     #[error("Not found")]
     NotFound,
+    #[error("Rate limit exceeded")]
+    RateLimitExceeded,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -33,6 +35,7 @@ impl ResponseError for Error {
             },
             Error::InsufficientFunds => actix_web::http::StatusCode::BAD_REQUEST,
             Error::NotFound => actix_web::http::StatusCode::NOT_FOUND,
+            Error::RateLimitExceeded => actix_web::http::StatusCode::TOO_MANY_REQUESTS,
         }
     }
 

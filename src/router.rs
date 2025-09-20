@@ -23,12 +23,14 @@ pub async fn start_server(address: &str, database_url: &str) -> crate::errors::R
     )) as Arc<dyn crate::webhook_service::WebhookManager>);
     let auth = HttpAuthentication::with_fn(validator::validator);
     let idempotency = middleware::idempotency::Idempotency::new(db_store.clone().into_inner());
+    let rate_limit = middleware::rate_limit::RateLimit::new();
     let webhook_actor = WebhookActor::new(db_store.clone().into_inner());
     webhook_actor.start();
     HttpServer::new(move || {
         App::new()
             .app_data(db_store.clone())
             .app_data(webhook_mgr.clone())
+            .wrap(rate_limit.clone())
             .wrap(idempotency.clone())
             .wrap(auth.clone())
             .wrap(Logger::default())
