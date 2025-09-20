@@ -1,4 +1,4 @@
-## Simple transaction service
+## Simple Transaction Service
 
 <br/>
 <p align="center">
