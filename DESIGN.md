@@ -42,6 +42,33 @@ I was trying to find solution to it. But then I didn't find anything reliable. B
 
 If i have to modify only one database then I can use mysql transactions with locks.
 
+**Tradeoffs**
+
+Making atomic transactions with psql locks and transaction has benefit of being corret always. But it does lock row for some time. This me result in delay for others accessing the row data such as balance. 
+
+There are more passive approaches such as adding a column and passively checking if someone has change the value in that column. But it does have chances of breaking. What if two users check row at same time and sends lock request? Also in case of failure to aquire we have to handle situation ourselves.
+
+## Idempotency
+
+I have implemented Idempotency using `Idempotency-Key`. This was a little tricky task because of Actix-Web. Cloning Service Response is not easy. I had to make way to rebuild it. Kind of hacky way!
+
+For now if you wan you can add Idempotency-Key in header and it will work. For each request `Idempotency-Key`must be unique. King uneasy. But better use uuid in production system. I saw this approach in strip's documentation https://docs.stripe.com/api/idempotent_requests
+
+**Trade offs**
+
+As always there have to be some trade off. Here I have used postgress table to cache request :) Not a good idea! Its slow, something like inmemeory database should have been used.
+
+Also rebuilding whole response? Who does that? I didn't had option!
+
+## Webhook
+
+Webhook works by a actor running in background and sending all the messages. The actor gets poll through actix broker. I have used a table in postgres as message queue. yes! thats it!
+Yes! Kafka or rabbitMQ with Postgress would have been a better setup as per scalability is concerened.
+
+**Trade off**
+
+Using table as queue is slow also actor and broker setup is not future proof. 
+
 ## Structure of project
 
 ```
