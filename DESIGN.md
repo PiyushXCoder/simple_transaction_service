@@ -2,6 +2,49 @@
 
 I am not sure how to make this documentation and I am typing it with hand. So please forgive me if I don't know the actual format of doing it.
 
+## Structure of project
+
+```
+ .
+├──  API-Documentation.md --> API Documentation
+├──  Cargo.lock
+├──  Cargo.toml
+├──  DESIGN.md
+├──  docker-compose.yml
+├──  Dockerfile
+├──  migrations --> It contains migrations
+│ ├──  20250919063118_api_keys.down.sql
+├── 󱧼 src
+│ ├──  actor_webhook_service_impl --> This contains sqlx implementation for `webhook_service`
+│ ├──  bin --> contains binaries. `server` is one which have server
+│ ├──  controller --> It contains controllers
+│ ├──  core --> This contains actual logics (Independent of `controller`)
+│ ├──  db --> Interface for database(independent of `sqlx`)
+│ ├──  errors.rs --> errors :)
+│ ├──  lib.rs --> exports everything to main
+│ ├──  messages --> Massages to be shared through `controller` to `core`
+│ ├──  router.rs --> Starting point for the server
+│ ├──  sqlx_db_impl --> This contains sqlx implementation for `db`
+│ ├──  validator.rs --> Validates keys
+│ └──  webhook_service --> Interface for webhook(Independent of `actor_webhook_service_impl`)
+├──  target
+└──  webhook-server.js
+```
+
+## I have tried to use lessons from clean architecuture
+
+![](Diagram.webp)
+
+So there is over all internal architecure I have tried my best to design it in a way so we can plug better infrastructure in future.
+
+For example look at sqlx, we may want something else? replace it! Or the webhook actor. We should create completely seperate service with a good queue like rabbitMQ.
+
+I have used clean architecture. Few thing to note are that Infrastructure is kept seperate from actual business logic as we might change infrastructure later. Tesing of business logic can be done using demo infrastructure as we have interface for infrastructure. Even the business logic is tried to keep loosly coupled with Actix_web, I am not sure when it might not work and we re build controllers.
+
+For Webhook I have utilized actors provided my actix. I did spin a actor which waits for poll lazily and if there is poll from broker. I does pull latest messages in queue and sends all.
+
+Rate limit is achieved using in memory hashmap and middleware. It is very effective. There is a bash file to test it too. 
+
 ## Atomic Transactions
 
 I am utilizing mysql's transaction and lock to achieve true atomic transactions. But here is all the thoughts givento it!
@@ -44,7 +87,7 @@ If i have to modify only one database then I can use mysql transactions with loc
 
 **Tradeoffs**
 
-Making atomic transactions with psql locks and transaction has benefit of being corret always. But it does lock row for some time. This me result in delay for others accessing the row data such as balance. 
+Making atomic transactions with psql locks and transaction has benefit of being corret always. But it does lock row for some time. This me result in delay for others accessing the row data such as balance.
 
 There are more passive approaches such as adding a column and passively checking if someone has change the value in that column. But it does have chances of breaking. What if two users check row at same time and sends lock request? Also in case of failure to aquire we have to handle situation ourselves.
 
@@ -67,48 +110,11 @@ Yes! Kafka or rabbitMQ with Postgress would have been a better setup as per scal
 
 **Trade off**
 
-Using table as queue is slow also actor and broker setup is not future proof. 
+Using table as queue is slow also actor and broker setup is not future proof.
 
-## Structure of project
+## Rate Limiting
 
-```
- .
-├──  API-Documentation.md --> API Documentation
-├──  Cargo.lock
-├──  Cargo.toml
-├──  DESIGN.md
-├──  docker-compose.yml
-├──  Dockerfile
-├──  migrations --> It contains migrations
-│ ├──  20250919063118_api_keys.down.sql
-├── 󱧼 src
-│ ├──  actor_webhook_service_impl --> This contains sqlx implementation for `webhook_service`
-│ ├──  bin --> contains binaries. `server` is one which have server
-│ ├──  controller --> It contains controllers
-│ ├──  core --> This contains actual logics (Independent of `controller`)
-│ ├──  db --> Interface for database(independent of `sqlx`)
-│ ├──  errors.rs --> errors :)
-│ ├──  lib.rs --> exports everything to main
-│ ├──  messages --> Massages to be shared through `controller` to `core`
-│ ├──  router.rs --> Starting point for the server
-│ ├──  sqlx_db_impl --> This contains sqlx implementation for `db`
-│ ├──  validator.rs --> Validates keys
-│ └──  webhook_service --> Interface for webhook(Independent of `actor_webhook_service_impl`)
-├──  target
-└──  webhook-server.js
-```
-
-## I have tried to use lessons from clean architecuture
-
-![](Diagram.webp)
-
-So there is over all internal architecure I have tried my best to design it in a way so we can plug better infrastructure in future.
-
-For example look at sqlx, we may want something else? replace it! Or the webhook actor. We should create completely seperate service with a good queue like rabbitMQ.
-
-I have used clean architecture. Few thing to note are that Infrastructure is kept seperate from actual business logic as we might change infrastructure later. Tesing of business logic can be done using demo infrastructure as we have interface for infrastructure. Even the business logic is tried to keep loosly coupled with Actix_web, I am not sure when it might not work and we re build controllers.
-
-For Webhook I have utilized actors provided my actix. I did spin a actor which waits for poll lazily and if there is poll from broker. I does pull latest messages in queue and sends all.
+So the rate limit was supposed to be applied on requests made by api key. I have used an in-memory HashMap. The key is api-key and value is tuple is count and timestamp of first request. I am matching the timestamp lapse for the count. Based on the condition I decide if I have to refuse, increment count or reset count. This is very effective. 
 
 ## Things I could have had improved
 
