@@ -1,5 +1,6 @@
 pub mod account;
 pub mod api_keys;
+pub mod idempotency;
 pub mod transaction;
 pub mod webhook;
 
@@ -12,6 +13,7 @@ pub trait DbStore:
     + transaction::Transaction
     + api_keys::ApiKeys
     + webhook::Webhook
+    + idempotency::Idempotency
     + 'static
 {
 }

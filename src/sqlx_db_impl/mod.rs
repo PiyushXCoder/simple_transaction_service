@@ -2,6 +2,7 @@ use crate::db::DbStore;
 
 pub mod account;
 pub mod api_keys;
+pub mod idempotency;
 pub mod transaction;
 pub mod webhook;
 
