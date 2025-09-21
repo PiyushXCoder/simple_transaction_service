@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO idempotency (key, response, status_code)\n            VALUES ($1, $2, $3)\n            ON CONFLICT (key) DO NOTHING\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Bytea",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0f90580770105ed13e107f91781a02fd7669169dfe886013daa5fb8a0ecdb33b"
+}

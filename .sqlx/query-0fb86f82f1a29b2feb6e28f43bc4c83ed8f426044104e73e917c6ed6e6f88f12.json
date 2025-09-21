@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT key, response, status_code, created_at\n            FROM idempotency\n            WHERE key = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "key",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "response",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 2,
+        "name": "status_code",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "0fb86f82f1a29b2feb6e28f43bc4c83ed8f426044104e73e917c6ed6e6f88f12"
+}
