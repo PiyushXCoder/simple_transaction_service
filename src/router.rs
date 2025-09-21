@@ -9,13 +9,12 @@ use crate::{db::DbStore, validator};
 use actix::Actor;
 use actix_web::{App, HttpServer, web};
 use actix_web_httpauth::middleware::HttpAuthentication;
-use log::info;
 use opentelemetry_instrumentation_actix_web::{RequestMetrics, RequestTracing};
 
 pub async fn start_server(address: &str, database_url: &str) -> crate::errors::Result<()> {
     init_open_telemetry();
 
-    info!("Starting server at http://{}", address);
+    println!("Starting server at http://{}", address);
     let db_store = web::Data::from(
         Arc::new(SqlxDbStore::new_from_database_url(database_url)) as Arc<dyn DbStore>
     );
