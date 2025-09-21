@@ -1,7 +1,8 @@
-use crate::db::DbStore;
+use crate::{db::DbStore, open_telemetry::new_span};
 use actix::prelude::*;
 use actix_broker::{BrokerSubscribe, SystemBroker};
-use log::error;
+use log::{error, info};
+use opentelemetry::{global::ObjectSafeSpan, trace::SpanKind};
 use std::sync::Arc;
 
 pub struct WebhookActor {
@@ -23,13 +24,20 @@ pub enum WebhookActorMessage {
 impl Actor for WebhookActor {
     type Context = Context<Self>;
     fn started(&mut self, ctx: &mut Self::Context) {
+        let mut span = new_span("WebhookActor::started", SpanKind::Internal);
+        span.set_status(opentelemetry::trace::Status::Ok);
+        log::info!("WebhookActor started");
         self.subscribe_async::<SystemBroker, WebhookActorMessage>(ctx);
+        span.end();
     }
 }
 
 impl Handler<WebhookActorMessage> for WebhookActor {
     type Result = ();
     fn handle(&mut self, _: WebhookActorMessage, _ctx: &mut Self::Context) -> Self::Result {
+        let mut span = new_span("WebhookActor::Poll", SpanKind::Internal);
+        span.set_status(opentelemetry::trace::Status::Ok);
+
         let db_store = self.db_store.clone();
         actix::spawn(async move {
             match db_store.poll_webhook_queue().await {
@@ -46,6 +54,7 @@ impl Handler<WebhookActorMessage> for WebhookActor {
                         match res {
                             Ok(response) => {
                                 if response.status().is_success() {
+                                    info!("Successfully sent webhook to {}", item.url);
                                     if let Err(e) =
                                         db_store.mark_webhook_queue_item_as_sent(item.id).await
                                     {
@@ -70,5 +79,6 @@ impl Handler<WebhookActorMessage> for WebhookActor {
                 }
             }
         });
+        span.end();
     }
 }

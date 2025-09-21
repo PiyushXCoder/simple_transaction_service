@@ -1,5 +1,8 @@
 use log::Level;
-use opentelemetry::global;
+use opentelemetry::{
+    global::{self, BoxedSpan, BoxedTracer},
+    trace::{SpanKind, Tracer},
+};
 use opentelemetry_appender_log::OpenTelemetryLogBridge;
 use opentelemetry_sdk::{Resource, propagation::TraceContextPropagator};
 use std::str::FromStr;
@@ -68,4 +71,16 @@ pub fn init_open_telemetry() {
     init_meter_provider();
 
     log::info!("OpenTelemetry initialized");
+}
+
+pub fn get_tracer() -> BoxedTracer {
+    global::tracer("simple-transaction-service")
+}
+pub fn new_span(name: &str, kind: SpanKind) -> BoxedSpan {
+    let tracer = get_tracer();
+    let span = tracer
+        .span_builder(name.to_owned())
+        .with_kind(kind)
+        .start(&tracer);
+    span
 }
