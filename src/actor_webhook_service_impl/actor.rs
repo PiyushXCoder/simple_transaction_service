@@ -40,7 +40,16 @@ impl Handler<WebhookActorMessage> for WebhookActor {
 
         let db_store = self.db_store.clone();
         actix::spawn(async move {
-            match db_store.poll_webhook_queue().await {
+            tokio::time::sleep(std::time::Duration::from_secs(2)).await; // Throttle to avoid busy looping
+
+            let mut tx = match db_store.start_transaction().await {
+                Ok(tx) => tx,
+                Err(e) => {
+                    error!("Failed to start transaction: {}", e);
+                    return;
+                }
+            };
+            match tx.poll_webhook_queue().await {
                 Ok(items) => {
                     for item in items {
                         let client = reqwest::Client::new();
@@ -56,7 +65,7 @@ impl Handler<WebhookActorMessage> for WebhookActor {
                                 if response.status().is_success() {
                                     info!("Successfully sent webhook to {}", item.url);
                                     if let Err(e) =
-                                        db_store.mark_webhook_queue_item_as_sent(item.id).await
+                                        tx.mark_webhook_queue_item_as_sent(item.id).await
                                     {
                                         error!("Failed to mark webhook queue item as sent: {}", e);
                                     }
@@ -77,6 +86,9 @@ impl Handler<WebhookActorMessage> for WebhookActor {
                 Err(e) => {
                     error!("Failed to poll webhook queue: {}", e);
                 }
+            }
+            if let Err(e) = tx.commit().await {
+                error!("Failed to commit transaction: {}", e);
             }
         });
         span.end();

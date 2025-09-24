@@ -1,15 +1,15 @@
-use super::SqlxDbStore;
+use super::SqlxTransaction;
 use crate::db::{account::Username, transaction::Transaction};
 
 #[async_trait::async_trait]
-impl Transaction for SqlxDbStore {
+impl Transaction for SqlxTransaction {
     async fn create_transaction(
-        &self,
+        &mut self,
         sender: &Username,
         receiver: &Username,
         amount: i64,
     ) -> Result<i32, crate::errors::Error> {
-        let mut tx = self.pg_pool.begin().await?;
+        // let mut tx = self.pg_pool.begin().await?;
 
         let lock_sender_account = sqlx::query!(
             "SELECT balance FROM account WHERE username = $1 FOR UPDATE",
@@ -20,8 +20,11 @@ impl Transaction for SqlxDbStore {
             receiver
         );
 
-        let _ = lock_receiver_account.fetch_one(&mut *tx).await?.balance;
-        let balance_sender = lock_sender_account.fetch_one(&mut *tx).await?.balance;
+        let _ = lock_receiver_account
+            .fetch_one(&mut *self.tx)
+            .await?
+            .balance;
+        let balance_sender = lock_sender_account.fetch_one(&mut *self.tx).await?.balance;
 
         if balance_sender < amount {
             return Err(crate::errors::Error::InsufficientFunds);
@@ -32,7 +35,7 @@ impl Transaction for SqlxDbStore {
             amount,
             sender
         )
-        .execute(&mut *tx)
+        .execute(&mut *self.tx)
         .await?;
 
         sqlx::query!(
@@ -40,7 +43,7 @@ impl Transaction for SqlxDbStore {
             amount,
             receiver
         )
-        .execute(&mut *tx)
+        .execute(&mut *self.tx)
         .await?;
 
         let transaction_id = sqlx::query_scalar!(
@@ -49,15 +52,14 @@ impl Transaction for SqlxDbStore {
             receiver,
             amount
         )
-        .fetch_one(&mut *tx)
+        .fetch_one(&mut *self.tx)
         .await?;
 
-        tx.commit().await?;
         Ok(transaction_id)
     }
 
     async fn get_transaction(
-        &self,
+        &mut self,
         id: i32,
     ) -> Result<Option<crate::db::transaction::TransactionInfo>, crate::errors::Error> {
         let query = sqlx::query_as!(
@@ -65,34 +67,32 @@ impl Transaction for SqlxDbStore {
             "SELECT id, sender, receiver, amount, timestamp FROM transaction WHERE id = $1",
             id
         );
-        let result = query.fetch_optional(&self.pg_pool).await?;
+        let result = query.fetch_optional(&mut *self.tx).await?;
         Ok(result)
     }
 
     async fn list_transactions(
-        &self,
+        &mut self,
     ) -> Result<Vec<crate::db::transaction::TransactionInfo>, crate::errors::Error> {
         let query = sqlx::query_as!(
             crate::db::transaction::TransactionInfo,
             "SELECT id, sender, receiver, amount, timestamp FROM transaction ORDER BY timestamp DESC"
         );
-        let results = query.fetch_all(&self.pg_pool).await?;
+        let results = query.fetch_all(&mut *self.tx).await?;
         Ok(results)
     }
 
     async fn credit_account(
-        &self,
+        &mut self,
         account: &Username,
         amount: i64,
     ) -> Result<i32, crate::errors::Error> {
-        let mut tx = self.pg_pool.begin().await?;
-
         sqlx::query!(
             "UPDATE account SET balance = balance + $1 WHERE username = $2",
             amount,
             account
         )
-        .execute(&mut *tx)
+        .execute(&mut *self.tx)
         .await?;
 
         let transaction_id = sqlx::query_scalar!(
@@ -100,26 +100,23 @@ impl Transaction for SqlxDbStore {
             account,
             amount
         )
-        .fetch_one(&mut *tx)
+        .fetch_one(&mut *self.tx)
         .await?;
 
-        tx.commit().await?;
         Ok(transaction_id)
     }
 
     async fn debit_account(
-        &self,
+        &mut self,
         account: &Username,
         amount: i64,
     ) -> Result<i32, crate::errors::Error> {
-        let mut tx = self.pg_pool.begin().await?;
-
         let lock_account = sqlx::query!(
             "SELECT balance FROM account WHERE username = $1 FOR UPDATE",
             account
         );
 
-        let balance = lock_account.fetch_one(&mut *tx).await?.balance;
+        let balance = lock_account.fetch_one(&mut *self.tx).await?.balance;
         if balance < amount {
             return Err(crate::errors::Error::InsufficientFunds);
         }
@@ -129,7 +126,7 @@ impl Transaction for SqlxDbStore {
             amount,
             account
         )
-        .execute(&mut *tx)
+        .execute(&mut *self.tx)
         .await?;
 
         let transaction_id = sqlx::query_scalar!(
@@ -137,10 +134,9 @@ impl Transaction for SqlxDbStore {
             account,
             -amount
         )
-        .fetch_one(&mut *tx)
+        .fetch_one(&mut *self.tx)
         .await?;
 
-        tx.commit().await?;
         Ok(transaction_id)
     }
 }

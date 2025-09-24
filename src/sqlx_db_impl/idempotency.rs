@@ -1,10 +1,10 @@
-use super::SqlxDbStore;
+use super::SqlxTransaction;
 use crate::db::idempotency::{Idempotency, IdempotencyItem};
 
 #[async_trait::async_trait]
-impl Idempotency for SqlxDbStore {
+impl Idempotency for SqlxTransaction {
     async fn get_idempotency_item(
-        &self,
+        &mut self,
         id: &str,
     ) -> Result<Option<IdempotencyItem>, crate::errors::Error> {
         let rec = sqlx::query_as!(
@@ -16,14 +16,14 @@ impl Idempotency for SqlxDbStore {
             "#,
             id
         )
-        .fetch_optional(&self.pg_pool)
+        .fetch_optional(&mut *self.tx)
         .await?;
 
         Ok(rec)
     }
 
     async fn set_idempotency_item(
-        &self,
+        &mut self,
         key: &str,
         response: Vec<u8>,
         status_code: i32,
@@ -38,7 +38,7 @@ impl Idempotency for SqlxDbStore {
             response,
             status_code as i32
         )
-        .execute(&self.pg_pool)
+        .execute(&mut *self.tx)
         .await?;
         Ok(())
     }

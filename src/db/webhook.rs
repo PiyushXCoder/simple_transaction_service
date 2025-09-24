@@ -2,12 +2,15 @@ use crate::{db::account::Username, errors::Error};
 
 #[async_trait::async_trait]
 pub trait Webhook {
-    async fn add_webhook(&self, listening_account: &Username, url: &str) -> Result<(), Error>;
-    async fn list_webhooks(&self, listening_account: &Username) -> Result<Vec<WebhookInfo>, Error>;
-    async fn delete_webhook(&self, id: i32) -> Result<(), Error>;
+    async fn add_webhook(&mut self, listening_account: &Username, url: &str) -> Result<(), Error>;
+    async fn list_webhooks(
+        &mut self,
+        listening_account: &Username,
+    ) -> Result<Vec<WebhookInfo>, Error>;
+    async fn delete_webhook(&mut self, id: i32) -> Result<(), Error>;
 
     async fn queue_webhook(
-        &self,
+        &mut self,
         url: &str,
         listening_account: &Username,
         transaction_id: i32,
@@ -15,9 +18,9 @@ pub trait Webhook {
         message: &str,
     ) -> Result<(), Error>;
 
-    async fn poll_webhook_queue(&self) -> Result<Vec<QueuedWebhookItem>, Error>;
+    async fn poll_webhook_queue(&mut self) -> Result<Vec<QueuedWebhookItem>, Error>;
 
-    async fn mark_webhook_queue_item_as_sent(&self, id: i32) -> Result<(), Error>;
+    async fn mark_webhook_queue_item_as_sent(&mut self, id: i32) -> Result<(), Error>;
 }
 
 pub struct WebhookInfo {

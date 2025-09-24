@@ -1,6 +1,4 @@
-use std::sync::Arc;
-
-use crate::db::DbStore;
+use crate::db::RefTransaction;
 use crate::{
     errors,
     messages::{requests::*, responses::*},
@@ -8,9 +6,13 @@ use crate::{
 
 pub async fn create_account(
     req: CreateAccountRequest,
-    db_store: Arc<dyn DbStore>,
+    db_transaction: RefTransaction,
 ) -> errors::Result<ResponseMessage> {
-    db_store.create_account(&req.username, &req.name).await?;
+    db_transaction
+        .lock()
+        .await
+        .create_account(&req.username, &req.name)
+        .await?;
     Ok(ResponseMessage {
         message: "Account created successfully".to_string(),
     })
@@ -18,9 +20,13 @@ pub async fn create_account(
 
 pub async fn get_account(
     req: GetAccountRequest,
-    db_store: Arc<dyn DbStore>,
+    db_transaction: RefTransaction,
 ) -> errors::Result<AccountResponse> {
-    let account = db_store.get_account(&req.username).await?;
+    let account = db_transaction
+        .lock()
+        .await
+        .get_account(&req.username)
+        .await?;
     let account = account.ok_or(errors::Error::NotFound)?;
 
     Ok(AccountResponse {

@@ -45,15 +45,26 @@ pub fn init_meter_provider() {
 }
 
 pub fn init_logger_provider() {
-    let exporter = opentelemetry_otlp::LogExporter::builder()
-        .with_tonic()
-        .build()
-        .expect("Failed to create OTLP log exporter");
+    let use_stdout = std::env::var("LOG_EXPORTER")
+        .map(|v| v.to_lowercase() == "stdout")
+        .unwrap_or(false);
 
-    let logger_provider = opentelemetry_sdk::logs::SdkLoggerProvider::builder()
-        .with_batch_exporter(exporter)
-        .with_resource(get_resource())
-        .build();
+    let logger_provider = if use_stdout {
+        opentelemetry_sdk::logs::SdkLoggerProvider::builder()
+            .with_simple_exporter(opentelemetry_stdout::LogExporter::default())
+            .with_resource(get_resource())
+            .build()
+    } else {
+        let exporter = opentelemetry_otlp::LogExporter::builder()
+            .with_tonic()
+            .build()
+            .expect("Failed to create OTLP log exporter");
+
+        opentelemetry_sdk::logs::SdkLoggerProvider::builder()
+            .with_batch_exporter(exporter)
+            .with_resource(get_resource())
+            .build()
+    };
 
     let otel_log_appender = OpenTelemetryLogBridge::new(&logger_provider);
     log::set_boxed_logger(Box::new(otel_log_appender)).expect("Failed to set logger");

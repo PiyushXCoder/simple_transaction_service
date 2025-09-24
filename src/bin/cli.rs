@@ -1,5 +1,7 @@
 use clap::Parser;
-use simple_transaction_service::{db::api_keys::ApiKeys, sqlx_db_impl::SqlxDbStore};
+use simple_transaction_service::{
+    db::database_transaction::DatabaseTranscation, sqlx_db_impl::SqlxDbStore,
+};
 use sqlx::postgres::PgPoolOptions;
 use std::env;
 
@@ -45,18 +47,22 @@ async fn main() {
         println!("Database migrations applied successfully.");
     } else if args.add_api_key {
         let db = SqlxDbStore::new(get_postgres_pool(&get_database_url(args)).await);
-        let new_key = db
+        let mut tx = db.start_transaction().await.unwrap();
+        let new_key = tx
             .create_api_key()
             .await
             .expect("Failed to create new API key");
+        tx.commit().await.unwrap();
 
         println!("New API key added: {}", new_key);
     } else if args.list_api_keys {
         let db = SqlxDbStore::new(get_postgres_pool(&get_database_url(args)).await);
-        let keys = db.list_api_keys().await.expect("Failed to list API keys");
+        let mut tx = db.start_transaction().await.unwrap();
+        let keys = tx.list_api_keys().await.expect("Failed to list API keys");
         println!("API Keys:");
         for key in keys {
             println!("- {}", key);
         }
+        tx.commit().await.unwrap();
     }
 }

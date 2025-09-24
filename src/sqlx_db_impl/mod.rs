@@ -2,6 +2,7 @@ use crate::db::DbStore;
 
 pub mod account;
 pub mod api_keys;
+pub mod databse_transaction;
 pub mod idempotency;
 pub mod transaction;
 pub mod webhook;
@@ -24,3 +25,7 @@ impl SqlxDbStore {
 }
 
 impl DbStore for SqlxDbStore {}
+
+pub struct SqlxTransaction {
+    tx: sqlx::Transaction<'static, sqlx::Postgres>,
+}

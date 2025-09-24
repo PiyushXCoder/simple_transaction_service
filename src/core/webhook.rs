@@ -1,6 +1,4 @@
-use std::sync::Arc;
-
-use crate::db::DbStore;
+use crate::db::RefTransaction;
 use crate::{
     errors,
     messages::{requests::*, responses::*},
@@ -8,9 +6,11 @@ use crate::{
 
 pub async fn add_webhook(
     req: AddWebhookRequest,
-    db_store: Arc<dyn DbStore>,
+    db_transaction: RefTransaction,
 ) -> errors::Result<ResponseMessage> {
-    db_store
+    db_transaction
+        .lock()
+        .await
         .add_webhook(&req.listening_account, &req.url)
         .await?;
     Ok(ResponseMessage {

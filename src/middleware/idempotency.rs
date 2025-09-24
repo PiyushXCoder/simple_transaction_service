@@ -1,28 +1,19 @@
 use std::{
     future::{Ready, ready},
     rc::Rc,
-    sync::Arc,
 };
 
 use actix_web::{
-    Error, HttpResponseBuilder,
+    Error, HttpMessage, HttpResponseBuilder,
     body::{self},
     dev::{Service, ServiceRequest, ServiceResponse, Transform, forward_ready},
 };
 use futures_util::future::LocalBoxFuture;
 
-use crate::db::DbStore;
+use crate::db::RefTransaction;
 
 #[derive(Clone)]
-pub struct Idempotency {
-    db_store: Arc<dyn DbStore>,
-}
-
-impl Idempotency {
-    pub fn new(db_store: Arc<dyn DbStore>) -> Self {
-        Self { db_store }
-    }
-}
+pub struct Idempotency;
 
 impl<S> Transform<S, ServiceRequest> for Idempotency
 where
@@ -38,14 +29,12 @@ where
     fn new_transform(&self, service: S) -> Self::Future {
         ready(Ok(IdempotencyMiddleware {
             service: Rc::new(service),
-            db_store: self.db_store.clone(),
         }))
     }
 }
 
 pub struct IdempotencyMiddleware<S> {
     service: Rc<S>,
-    db_store: Arc<dyn DbStore>,
 }
 
 impl<S> Service<ServiceRequest> for IdempotencyMiddleware<S>
@@ -61,10 +50,20 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
+        let db_transaction = req.extensions().get::<RefTransaction>().cloned();
         let srv = self.service.clone();
-        let db_store = self.db_store.clone();
 
         Box::pin(async move {
+            let db_transaction = match db_transaction {
+                Some(tx) => tx,
+                None => {
+                    let response = actix_web::HttpResponse::InternalServerError()
+                        .body("No database transaction found");
+                    let res = req.into_response(response);
+                    return Ok(res);
+                }
+            };
+            let mut tx = db_transaction.lock().await;
             let idempotency_key = req
                 .headers()
                 .get("Idempotency-Key")
@@ -72,7 +71,7 @@ where
                 .map(|s| s.to_string());
 
             if let Some(key) = &idempotency_key {
-                let idempotency_item = db_store.get_idempotency_item(&key).await.unwrap();
+                let idempotency_item = tx.get_idempotency_item(&key).await.unwrap();
                 if let Some(item) = idempotency_item {
                     let body = item.response;
                     let status = item.status_code as u16;
@@ -84,15 +83,16 @@ where
                     return Ok(res);
                 }
             }
+            drop(tx);
 
             let fut = srv.call(req);
             let res = fut.await?;
             let (res, bytes) = response_to_bytes(res).await;
 
+            let mut tx = db_transaction.lock().await;
             if let Some(key) = idempotency_key {
                 let status_code = res.status().as_u16() as i32;
-                db_store
-                    .set_idempotency_item(&key, bytes, status_code)
+                tx.set_idempotency_item(&key, bytes, status_code)
                     .await
                     .unwrap();
             }

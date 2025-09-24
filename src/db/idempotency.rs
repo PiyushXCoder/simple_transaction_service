@@ -4,9 +4,9 @@ use crate::errors::Error;
 
 #[async_trait::async_trait]
 pub trait Idempotency {
-    async fn get_idempotency_item(&self, id: &str) -> Result<Option<IdempotencyItem>, Error>;
+    async fn get_idempotency_item(&mut self, id: &str) -> Result<Option<IdempotencyItem>, Error>;
     async fn set_idempotency_item(
-        &self,
+        &mut self,
         key: &str,
         response: Vec<u8>,
         status_code: i32,

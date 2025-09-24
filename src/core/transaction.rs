@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::db::DbStore;
+use crate::db::RefTransaction;
 use crate::webhook_service::WebhookManager;
 use crate::{
     errors,
@@ -9,15 +9,18 @@ use crate::{
 
 pub async fn transfer_funds(
     req: TransferFundsRequest,
-    db_store: Arc<dyn DbStore>,
+    db_transaction: RefTransaction,
     webhook_mgr: Arc<dyn WebhookManager>,
 ) -> errors::Result<TransactionResponse> {
-    let id = db_store
+    let id = db_transaction
+        .lock()
+        .await
         .create_transaction(&req.sender, &req.receiver, req.amount)
         .await?;
 
     webhook_mgr
         .queue_webhook(
+            db_transaction.clone(),
             &req.sender,
             id,
             "Transfer Funds",
@@ -27,6 +30,7 @@ pub async fn transfer_funds(
 
     webhook_mgr
         .queue_webhook(
+            db_transaction.clone(),
             &req.receiver,
             id,
             "Transfer Funds",
@@ -44,12 +48,17 @@ pub async fn transfer_funds(
 
 pub async fn credit_account(
     req: CreditAccountRequest,
-    db_store: Arc<dyn DbStore>,
+    db_transaction: RefTransaction,
     webhook_mgr: Arc<dyn WebhookManager>,
 ) -> errors::Result<TransactionResponse> {
-    let id = db_store.credit_account(&req.receiver, req.amount).await?;
+    let id = db_transaction
+        .lock()
+        .await
+        .credit_account(&req.receiver, req.amount)
+        .await?;
     webhook_mgr
         .queue_webhook(
+            db_transaction.clone(),
             &req.receiver,
             id,
             "Credit Funds",
@@ -62,12 +71,17 @@ pub async fn credit_account(
 
 pub async fn debit_account(
     req: DebitAccountRequest,
-    db_store: Arc<dyn DbStore>,
+    db_transaction: RefTransaction,
     webhook_mgr: Arc<dyn WebhookManager>,
 ) -> errors::Result<TransactionResponse> {
-    let id = db_store.debit_account(&req.receiver, req.amount).await?;
+    let id = db_transaction
+        .lock()
+        .await
+        .debit_account(&req.receiver, req.amount)
+        .await?;
     webhook_mgr
         .queue_webhook(
+            db_transaction.clone(),
             &req.receiver,
             id,
             "Debit Funds",

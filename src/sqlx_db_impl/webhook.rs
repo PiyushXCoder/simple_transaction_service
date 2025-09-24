@@ -1,10 +1,10 @@
-use super::SqlxDbStore;
+use super::SqlxTransaction;
 use crate::db::{account::Username, webhook::Webhook};
 
 #[async_trait::async_trait]
-impl Webhook for SqlxDbStore {
+impl Webhook for SqlxTransaction {
     async fn add_webhook(
-        &self,
+        &mut self,
         username: &Username,
         url: &str,
     ) -> Result<(), crate::errors::Error> {
@@ -17,12 +17,12 @@ impl Webhook for SqlxDbStore {
             url
         );
 
-        query.execute(&self.pg_pool).await?;
+        query.execute(&mut *self.tx).await?;
         Ok(())
     }
 
     async fn list_webhooks(
-        &self,
+        &mut self,
         listening_account: &Username,
     ) -> Result<Vec<crate::db::webhook::WebhookInfo>, crate::errors::Error> {
         let query = sqlx::query_as!(
@@ -35,11 +35,11 @@ impl Webhook for SqlxDbStore {
             "#,
             listening_account.as_str()
         );
-        let webhooks = query.fetch_all(&self.pg_pool).await?;
+        let webhooks = query.fetch_all(&mut *self.tx).await?;
         Ok(webhooks)
     }
 
-    async fn delete_webhook(&self, webhook_id: i32) -> Result<(), crate::errors::Error> {
+    async fn delete_webhook(&mut self, webhook_id: i32) -> Result<(), crate::errors::Error> {
         let query = sqlx::query!(
             r#"
             DELETE FROM webhook
@@ -48,7 +48,7 @@ impl Webhook for SqlxDbStore {
             webhook_id,
         );
 
-        let result = query.execute(&self.pg_pool).await?;
+        let result = query.execute(&mut *self.tx).await?;
         if result.rows_affected() == 0 {
             return Err(crate::errors::Error::NotFound);
         }
@@ -56,7 +56,7 @@ impl Webhook for SqlxDbStore {
     }
 
     async fn queue_webhook(
-        &self,
+        &mut self,
         url: &str,
         listening_account: &Username,
         transaction_id: i32,
@@ -75,12 +75,12 @@ impl Webhook for SqlxDbStore {
             message
         );
 
-        query.execute(&self.pg_pool).await?;
+        query.execute(&mut *self.tx).await?;
         Ok(())
     }
 
     async fn poll_webhook_queue(
-        &self,
+        &mut self,
     ) -> Result<Vec<crate::db::webhook::QueuedWebhookItem>, crate::errors::Error> {
         let query = sqlx::query_as!(
             crate::db::webhook::QueuedWebhookItem,
@@ -93,11 +93,14 @@ impl Webhook for SqlxDbStore {
             "#
         );
 
-        let items = query.fetch_all(&self.pg_pool).await?;
+        let items = query.fetch_all(&mut *self.tx).await?;
         Ok(items)
     }
 
-    async fn mark_webhook_queue_item_as_sent(&self, id: i32) -> Result<(), crate::errors::Error> {
+    async fn mark_webhook_queue_item_as_sent(
+        &mut self,
+        id: i32,
+    ) -> Result<(), crate::errors::Error> {
         let query = sqlx::query!(
             r#"
             UPDATE webhookqueue
@@ -107,7 +110,7 @@ impl Webhook for SqlxDbStore {
             id
         );
 
-        let result = query.execute(&self.pg_pool).await?;
+        let result = query.execute(&mut *self.tx).await?;
         if result.rows_affected() == 0 {
             return Err(crate::errors::Error::NotFound);
         }
