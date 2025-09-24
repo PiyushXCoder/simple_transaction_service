@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, VecDeque},
     future::{Ready, ready},
     rc::Rc,
     sync::{Arc, RwLock},
@@ -18,7 +18,7 @@ const MAX_REQUESTS_PER_MINUTE: i32 = 100;
 
 #[derive(Clone)]
 pub struct RateLimit {
-    counter: Arc<RwLock<HashMap<String, (i32, Instant)>>>,
+    counter: Arc<RwLock<HashMap<String, RwLock<VecDeque<Instant>>>>>,
 }
 
 impl RateLimit {
@@ -50,7 +50,7 @@ where
 
 pub struct RateLimitMiddleware<S> {
     service: Rc<S>,
-    counter: Arc<RwLock<HashMap<String, (i32, Instant)>>>,
+    counter: Arc<RwLock<HashMap<String, RwLock<VecDeque<Instant>>>>>,
 }
 
 impl<S> Service<ServiceRequest> for RateLimitMiddleware<S>
@@ -77,34 +77,26 @@ where
                 let api_key = credentials.token().to_string();
 
                 let api_counter = counter.read().unwrap();
-                let count = api_counter.get(&api_key);
-                match count {
-                    Some((count, timestamp)) => {
-                        if timestamp.elapsed().as_secs() < 60 {
-                            if *count >= MAX_REQUESTS_PER_MINUTE {
-                                let response = actix_web::HttpResponse::from_error(
-                                    errors::Error::RateLimitExceeded,
-                                );
-                                let res = req.into_response(response);
-                                return Ok(res);
-                            } else {
-                                drop(api_counter);
-                                let mut api_counter = counter.write().unwrap();
-                                let (count, _) = api_counter.get_mut(&api_key).unwrap();
-                                *count += 1;
-                            }
+                let timestamp_of_visits = api_counter.get(&api_key);
+                let current_time = Instant::now();
+                match timestamp_of_visits {
+                    Some(locked_timestamps) => {
+                        let mut timestamps = locked_timestamps.write().unwrap();
+                        timestamps.retain_mut(|ts| current_time.duration_since(*ts).as_secs() < 60);
+                        if timestamps.len() as i32 >= MAX_REQUESTS_PER_MINUTE {
+                            let response = actix_web::HttpResponse::from_error(
+                                errors::Error::RateLimitExceeded,
+                            );
+                            let res = req.into_response(response);
+                            return Ok(res);
                         } else {
-                            drop(api_counter);
-                            let mut api_counter = counter.write().unwrap();
-                            let (count, timestamp) = api_counter.get_mut(&api_key).unwrap();
-                            *count = 1;
-                            *timestamp = Instant::now();
+                            timestamps.push_back(current_time);
                         }
                     }
                     None => {
                         drop(api_counter);
                         let mut api_counter = counter.write().unwrap();
-                        api_counter.insert(api_key, (1, Instant::now()));
+                        api_counter.insert(api_key, RwLock::new(VecDeque::from([current_time])));
                     }
                 }
             }
