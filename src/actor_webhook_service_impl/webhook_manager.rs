@@ -18,7 +18,6 @@ impl WebhookManager for ActorWebhookManager {
         event: &str,
         message: &str,
     ) -> errors::Result<()> {
-        // TODO:
         let mut tx = db_transaction.lock().await;
         let db = tx.list_webhooks(&listening_account.to_string()).await?;
 
