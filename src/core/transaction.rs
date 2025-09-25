@@ -42,7 +42,6 @@ pub async fn transfer_funds(
         )
         .await?;
 
-    webhook_mgr.poll().await?;
     Ok(TransactionResponse { id })
 }
 
@@ -65,7 +64,6 @@ pub async fn credit_account(
             format!("Credited {} to {}", req.amount, req.receiver).as_str(),
         )
         .await?;
-    webhook_mgr.poll().await?;
     Ok(TransactionResponse { id })
 }
 
@@ -88,6 +86,5 @@ pub async fn debit_account(
             format!("Debited {} to {}", req.amount, req.receiver).as_str(),
         )
         .await?;
-    webhook_mgr.poll().await?;
     Ok(TransactionResponse { id })
 }

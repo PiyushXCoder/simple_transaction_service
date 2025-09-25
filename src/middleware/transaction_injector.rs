@@ -7,6 +7,7 @@ use std::{
 use actix_web::{
     Error, HttpMessage,
     dev::{Service, ServiceRequest, ServiceResponse, Transform, forward_ready},
+    web,
 };
 use futures_util::{future::LocalBoxFuture, lock::Mutex};
 
@@ -64,6 +65,9 @@ where
         let srv = self.service.clone();
         let db_store = self.db_store.clone();
         let req = Box::new(req);
+        let webhook_mgr = req
+            .app_data::<web::Data<dyn crate::webhook_service::WebhookManager>>()
+            .cloned();
 
         Box::pin(async move {
             let tx: RefTransaction = Arc::new(Mutex::new(db_store.start_transaction().await?));
@@ -86,6 +90,10 @@ where
                 None => {
                     log::warn!("TransactionInjector: No transaction found in request extensions");
                 }
+            }
+            // Always poll the webhook manager if it exists
+            if let Some(webhook_mgr) = webhook_mgr {
+                webhook_mgr.poll().await?;
             }
             Ok(res)
         })
