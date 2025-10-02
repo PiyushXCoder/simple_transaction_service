@@ -79,8 +79,15 @@ where
             match tx {
                 Some(tx) => {
                     if let Ok(tx) = Arc::try_unwrap(tx) {
-                        let tx = tx.into_inner();
-                        tx.commit().await?;
+                        if res.status().is_success() {
+                            log::info!("TransactionInjector: Committing transaction");
+                            let tx = tx.into_inner();
+                            tx.commit().await?;
+                        } else {
+                            log::info!(
+                                "TransactionInjector: Rolling back transaction due to non-success status"
+                            );
+                        }
                     } else {
                         log::warn!(
                             "TransactionInjector: Transaction still has multiple references, cannot commit"
